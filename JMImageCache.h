@@ -22,7 +22,7 @@
 + (JMImageCache *) sharedCache;
 
 // Opitionally create a different JMImageCache instance with it's own cache directory
-- (id)initWithCacheDirectory:(NSString*)cacheDirectory;
+- (id) initWithCacheDirectory:(NSString*)cacheDirectory;
 
 - (void) imageForURL:(NSURL *)url key:(NSString *)key completionBlock:(void (^)(UIImage *image))completion;
 - (void) imageForURL:(NSURL *)url completionBlock:(void (^)(UIImage *image))completion;
@@ -43,5 +43,8 @@
 
 - (void) writeData:(NSData *)data toPath:(NSString *)path;
 - (void) performDiskWriteOperation:(NSInvocation *)invoction;
+
+- (void) adjustCacheSizeTo:(unsigned long long)bytesSize;
+- (void) adjustCacheSizeBetweenMin:(unsigned long long)minBytesSize max:(unsigned long long)maxBytesSize;
 
 @end

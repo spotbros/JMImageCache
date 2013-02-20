@@ -40,9 +40,7 @@
 
     self.imageCache = [[JMImageCache alloc] initWithCacheDirectory:@"Library/Caches/JMCacheV2"];
     
-    // You should remove this next line from your apps!!!
-    // It is only here for demonstration purposes, so you can get an idea for what it's like to load images "fresh" for the first time.
-    [self.imageCache removeAllObjects];
+    [self.imageCache adjustCacheSizeTo:(200 * 1024)];
 
 	return self;
 }
