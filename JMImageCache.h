@@ -41,6 +41,9 @@
 - (void) removeImageForKey:(NSString *)key;
 - (void) removeImageForURL:(NSString *)url;
 
+- (UIImage *) setData:(NSData *)data forKey:(NSString *)key;
+- (UIImage *) setData:(NSData *)data forURL:(NSURL *)url;
+
 - (void) writeData:(NSData *)data toPath:(NSString *)path;
 - (void) performDiskWriteOperation:(NSInvocation *)invoction;
 

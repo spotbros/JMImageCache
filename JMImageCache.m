@@ -135,24 +135,14 @@ JMImageCache *_sharedCache = nil;
         if (!strongSelf) return;
         
         NSData *data = [NSData dataWithContentsOfURL:url];
-        UIImage *i = [[UIImage alloc] initWithData:data];
-        // stop process if the method could not initialize the image from the specified data
-        if (!i) return;
         
-        NSString *cachePath = [strongSelf _cachePathForKey:key];
-        NSInvocation *writeInvocation = [NSInvocation invocationWithMethodSignature:[strongSelf methodSignatureForSelector:@selector(writeData:toPath:)]];
-
-        [writeInvocation setTarget:strongSelf];
-        [writeInvocation setSelector:@selector(writeData:toPath:)];
-        [writeInvocation setArgument:&data atIndex:2];
-        [writeInvocation setArgument:&cachePath atIndex:3];
-
-        [strongSelf performDiskWriteOperation:writeInvocation];
-        [strongSelf setImage:i forKey:key];
-
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if(completion) completion(i);
-        });
+        UIImage *i = [strongSelf setData:data forKey:key];
+        if (i)
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if(completion) completion(i);
+            });
+        }
     });
 }
 
@@ -299,6 +289,35 @@ JMImageCache *_sharedCache = nil;
 }
 - (void) removeImageForURL:(NSURL *)url {
     [self removeImageForKey:keyForURL(url)];
+}
+- (UIImage *) setData:(NSData *)data forKey:(NSString *)key
+{
+    UIImage *i = nil;
+    
+    if (data)
+    {
+        i = [UIImage imageWithData:data];
+        // stop process if the method could not initialize the image from the specified data
+        if (!i) return nil;
+        
+        NSString *cachePath = [self _cachePathForKey:key];
+        NSInvocation *writeInvocation = [NSInvocation invocationWithMethodSignature:[self methodSignatureForSelector:@selector(writeData:toPath:)]];
+        
+        [writeInvocation setTarget:self];
+        [writeInvocation setSelector:@selector(writeData:toPath:)];
+        [writeInvocation setArgument:&data atIndex:2];
+        [writeInvocation setArgument:&cachePath atIndex:3];
+        
+        [self performDiskWriteOperation:writeInvocation];
+        
+        [self setImage:i forKey:key];
+    }
+    
+    return i;
+}
+- (UIImage *) setData:(NSData *)data forURL:(NSURL *)url
+{
+    return [self setData:data forKey:keyForURL(url)];
 }
 
 #pragma mark -
