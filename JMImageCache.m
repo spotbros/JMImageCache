@@ -88,11 +88,16 @@ JMImageCache *_sharedCache = nil;
     NSFileManager *fileMgr = [NSFileManager defaultManager];
     
     *directorySize = 0;
-    for (NSString *subpath in [fileMgr subpathsAtPath:self.imageCacheDirectory])
+    
+    NSError *error = nil;
+    NSArray *contents = [fileMgr contentsOfDirectoryAtPath:self.imageCacheDirectory error:&error];
+    if (!contents) return nil;
+    
+    for (NSString *subpath in contents)
     {
         NSString *cachePath = [self.imageCacheDirectory stringByAppendingPathComponent:subpath];
         
-        NSError *error = nil;
+        
         NSDictionary *fileAttr = [fileMgr attributesOfItemAtPath:cachePath error:&error];
         if (fileAttr)
         {
