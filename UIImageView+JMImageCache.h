@@ -7,6 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "JMImageCache.h"
 
 @interface UIImageView (JMImageCache)
 
@@ -15,5 +16,11 @@
 - (void) setImageWithURL:(NSURL *)url placeholder:(UIImage *)placeholderImage completionBlock:(void (^)(UIImage *))completionBlock;
 - (void) setImageWithURL:(NSURL *)url key:(NSString*)key placeholder:(UIImage *)placeholderImage;
 - (void) setImageWithURL:(NSURL *)url key:(NSString*)key placeholder:(UIImage *)placeholderImage completionBlock:(void (^)(UIImage *image))completionBlock;
+
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache;
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache placeholder:(UIImage *)placeholderImage;
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache placeholder:(UIImage *)placeholderImage completionBlock:(void (^)(UIImage *))completionBlock;
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache key:(NSString*)key placeholder:(UIImage *)placeholderImage;
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache key:(NSString*)key placeholder:(UIImage *)placeholderImage completionBlock:(void (^)(UIImage *image))completionBlock;
 
 @end

@@ -8,16 +8,19 @@
 
 #import "DemoViewController.h"
 #import "JMImageCache.h"
+#import "UIImageView+JMImageCache.h"
 
 @interface DemoViewController ()
 
 @property (strong, nonatomic) NSMutableArray *modelArray;
+@property (strong, nonatomic) JMImageCache *imageCache;
 
 @end
 
 @implementation DemoViewController
 
 @synthesize modelArray = _modelArray;
+@synthesize imageCache = _imageCache;
 
 - (id) init {
     self = [super init];
@@ -35,10 +38,11 @@
     [self.modelArray addObject:[NSDictionary dictionaryWithObjectsAndKeys:@"http://cl.ly/4iNI/Untitled-7.png", @"ImageURL", @"Kevin Malone", @"Title", nil]];
     [self.modelArray addObject:[NSDictionary dictionaryWithObjectsAndKeys:@"http://cl.ly/4iAX/Untitled-7.png", @"ImageURL", @"Stanley Hudson", @"Title", nil]];		
 
+    self.imageCache = [[JMImageCache alloc] initWithCacheDirectory:@"Library/Caches/JMCacheV2"];
+    
     // You should remove this next line from your apps!!!
     // It is only here for demonstration purposes, so you can get an idea for what it's like to load images "fresh" for the first time.
-
-    [[JMImageCache sharedCache] removeAllObjects];
+    [self.imageCache removeAllObjects];
 
 	return self;
 }
@@ -74,6 +78,7 @@
 	cell.textLabel.text = [[self.modelArray objectAtIndex:indexPath.row] objectForKey:@"Title"];
 
     [cell.imageView setImageWithURL:[NSURL URLWithString:urlString]
+                              cache:self.imageCache
                         placeholder:[UIImage imageNamed:@"placeholder"]];
 
 	return cell;

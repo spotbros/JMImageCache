@@ -8,35 +8,28 @@
 
 #import "JMImageCache.h"
 
-static NSString *_JMImageCacheDirectory;
+#define kJMImageCacheDefaultDirectory   @"Library/Caches/JMCache"
+#define kJMImageCacheDefaultPrefix      @"JMImageCache"
 
-static inline NSString *JMImageCacheDirectory() {
-	if(!_JMImageCacheDirectory) {
-		_JMImageCacheDirectory = [[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Caches/JMCache"] copy];
-	}
-
-	return _JMImageCacheDirectory;
-}
 inline static NSString *keyForURL(NSURL *url) {
 	return [url absoluteString];
-}
-static inline NSString *cachePathForKey(NSString *key) {
-    NSString *fileName = [NSString stringWithFormat:@"JMImageCache-%u", [key hash]];
-	return [JMImageCacheDirectory() stringByAppendingPathComponent:fileName];
 }
 
 JMImageCache *_sharedCache = nil;
 
 @interface JMImageCache ()
 
+@property (strong, nonatomic) NSString *imageCacheDirectory;
 @property (strong, nonatomic) NSOperationQueue *diskOperationQueue;
 
+- (NSString *) _cachePathForKey:(NSString *)key;
 - (void) _downloadAndWriteImageForURL:(NSURL *)url key:(NSString *)key completionBlock:(void (^)(UIImage *image))completion;
 
 @end
 
 @implementation JMImageCache
 
+@synthesize imageCacheDirectory = _imageCacheDirectory;
 @synthesize diskOperationQueue = _diskOperationQueue;
 
 + (JMImageCache *) sharedCache {
@@ -48,16 +41,26 @@ JMImageCache *_sharedCache = nil;
 }
 
 - (id) init {
+    return [self initWithCacheDirectory:kJMImageCacheDefaultDirectory];
+}
+
+- (id)initWithCacheDirectory:(NSString*)cacheDirectory {
     self = [super init];
     if(!self) return nil;
-
+    
+    self.imageCacheDirectory = [NSHomeDirectory() stringByAppendingPathComponent:cacheDirectory];
     self.diskOperationQueue = [[NSOperationQueue alloc] init];
-
-    [[NSFileManager defaultManager] createDirectoryAtPath:JMImageCacheDirectory()
+    
+    [[NSFileManager defaultManager] createDirectoryAtPath:self.imageCacheDirectory
                               withIntermediateDirectories:YES
                                                attributes:nil
                                                     error:NULL];
-	return self;
+	return self;    
+}
+
+- (NSString *) _cachePathForKey:(NSString *)key {
+    NSString *fileName = [NSString stringWithFormat:@"%@-%u", kJMImageCacheDefaultPrefix, [key hash]];
+	return [self.imageCacheDirectory stringByAppendingPathComponent:fileName];
 }
 
 - (void) _downloadAndWriteImageForURL:(NSURL *)url key:(NSString *)key completionBlock:(void (^)(UIImage *image))completion {
@@ -73,7 +76,7 @@ JMImageCache *_sharedCache = nil;
         // stop process if the method could not initialize the image from the specified data
         if (!i) return;
         
-        NSString *cachePath = cachePathForKey(key);
+        NSString *cachePath = [self _cachePathForKey:key];
         NSInvocation *writeInvocation = [NSInvocation invocationWithMethodSignature:[self methodSignatureForSelector:@selector(writeData:toPath:)]];
 
         [writeInvocation setTarget:self];
@@ -96,11 +99,11 @@ JMImageCache *_sharedCache = nil;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSFileManager *fileMgr = [NSFileManager defaultManager];
         NSError *error = nil;
-        NSArray *directoryContents = [fileMgr contentsOfDirectoryAtPath:JMImageCacheDirectory() error:&error];
+        NSArray *directoryContents = [fileMgr contentsOfDirectoryAtPath:self.imageCacheDirectory error:&error];
 
         if (error == nil) {
             for (NSString *path in directoryContents) {
-                NSString *fullPath = [JMImageCacheDirectory() stringByAppendingPathComponent:path];
+                NSString *fullPath = [self.imageCacheDirectory stringByAppendingPathComponent:path];
 
                 BOOL removeSuccess = [fileMgr removeItemAtPath:fullPath error:&error];
                 if (!removeSuccess) {
@@ -117,7 +120,7 @@ JMImageCache *_sharedCache = nil;
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSFileManager *fileMgr = [NSFileManager defaultManager];
-        NSString *cachePath = cachePathForKey(key);
+        NSString *cachePath = [self _cachePathForKey:key];
 
         NSError *error = nil;
 
@@ -196,7 +199,7 @@ JMImageCache *_sharedCache = nil;
 }
 
 - (UIImage *) imageFromDiskForKey:(NSString *)key {
-	UIImage *i = [[UIImage alloc] initWithData:[NSData dataWithContentsOfFile:cachePathForKey(key) options:0 error:NULL]];
+	UIImage *i = [[UIImage alloc] initWithData:[NSData dataWithContentsOfFile:[self _cachePathForKey:key] options:0 error:NULL]];
 	return i;
 }
 

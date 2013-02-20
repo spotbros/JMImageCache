@@ -6,8 +6,6 @@
 //  Copyright 2011 Jake Marsh. All rights reserved.
 //
 
-#import "UIImageView+JMImageCache.h"
-
 @class JMImageCache;
 
 @protocol JMImageCacheDelegate <NSObject>
@@ -20,7 +18,11 @@
 
 @interface JMImageCache : NSCache
 
+// Global cache for easy use. Located in 'Library/Caches/JMCache'
 + (JMImageCache *) sharedCache;
+
+// Opitionally create a different JMImageCache instance with it's own cache directory
+- (id)initWithCacheDirectory:(NSString*)cacheDirectory;
 
 - (void) imageForURL:(NSURL *)url key:(NSString *)key completionBlock:(void (^)(UIImage *image))completion;
 - (void) imageForURL:(NSURL *)url completionBlock:(void (^)(UIImage *image))completion;

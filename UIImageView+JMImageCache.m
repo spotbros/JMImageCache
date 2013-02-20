@@ -7,7 +7,6 @@
 //
 
 #import "UIImageView+JMImageCache.h"
-#import "JMImageCache.h"
 #import <objc/runtime.h>
 
 static char kJMImageURLObjectKey;
@@ -50,6 +49,21 @@ static char kJMImageURLObjectKey;
     [self setImageWithURL:url key:key placeholder:placeholderImage completionBlock:nil];
 }
 - (void) setImageWithURL:(NSURL *)url key:(NSString*)key placeholder:(UIImage *)placeholderImage completionBlock:(void (^)(UIImage *image))completionBlock {
+    [self setImageWithURL:url cache:[JMImageCache sharedCache] key:key placeholder:placeholderImage completionBlock:completionBlock];
+}
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache {
+    [self setImageWithURL:url cache:cache placeholder:nil];
+}
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache placeholder:(UIImage *)placeholderImage {
+    [self setImageWithURL:url cache:cache key:nil placeholder:placeholderImage];
+}
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache placeholder:(UIImage *)placeholderImage completionBlock:(void (^)(UIImage *))completionBlock {
+    [self setImageWithURL:url cache:cache key:nil placeholder:placeholderImage completionBlock:completionBlock];
+}
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache key:(NSString*)key placeholder:(UIImage *)placeholderImage {
+    [self setImageWithURL:url cache:cache key:key placeholder:placeholderImage completionBlock:nil];
+}
+- (void) setImageWithURL:(NSURL *)url cache:(JMImageCache *)cache key:(NSString*)key placeholder:(UIImage *)placeholderImage completionBlock:(void (^)(UIImage *image))completionBlock {
     self.jm_imageURL = url;
     self.image = placeholderImage;
 
@@ -62,9 +76,9 @@ static char kJMImageURLObjectKey;
         UIImage *i;
 
         if (key) {
-            i = [[JMImageCache sharedCache] cachedImageForKey:key];
+            i = [cache cachedImageForKey:key];
         } else {
-            i = [[JMImageCache sharedCache] cachedImageForURL:url];
+            i = [cache cachedImageForURL:url];
         }
 
         if(i) {
@@ -84,7 +98,7 @@ static char kJMImageURLObjectKey;
                 [safeSelf setNeedsLayout];
             });
 
-            [[JMImageCache sharedCache] imageForURL:url key:key completionBlock:^(UIImage *image) {
+            [cache imageForURL:url key:key completionBlock:^(UIImage *image) {
                 if ([url isEqual:safeSelf.jm_imageURL]) {
                     dispatch_async(dispatch_get_main_queue(), ^{
                         if(image) {
