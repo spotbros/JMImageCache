@@ -124,22 +124,26 @@ JMImageCache *_sharedCache = nil;
         key = keyForURL(url);
     }
 
+    __weak JMImageCache *weakSelf = self;
     dispatch_async(dispatch_get_global_queue(kJSImageCacheQueuePriority, 0), ^{
+        __strong JMImageCache *strongSelf = weakSelf;
+        if (!strongSelf) return;
+        
         NSData *data = [NSData dataWithContentsOfURL:url];
         UIImage *i = [[UIImage alloc] initWithData:data];
         // stop process if the method could not initialize the image from the specified data
         if (!i) return;
         
-        NSString *cachePath = [self _cachePathForKey:key];
-        NSInvocation *writeInvocation = [NSInvocation invocationWithMethodSignature:[self methodSignatureForSelector:@selector(writeData:toPath:)]];
+        NSString *cachePath = [strongSelf _cachePathForKey:key];
+        NSInvocation *writeInvocation = [NSInvocation invocationWithMethodSignature:[strongSelf methodSignatureForSelector:@selector(writeData:toPath:)]];
 
-        [writeInvocation setTarget:self];
+        [writeInvocation setTarget:strongSelf];
         [writeInvocation setSelector:@selector(writeData:toPath:)];
         [writeInvocation setArgument:&data atIndex:2];
         [writeInvocation setArgument:&cachePath atIndex:3];
 
-        [self performDiskWriteOperation:writeInvocation];
-        [self setImage:i forKey:key];
+        [strongSelf performDiskWriteOperation:writeInvocation];
+        [strongSelf setImage:i forKey:key];
 
         dispatch_async(dispatch_get_main_queue(), ^{
             if(completion) completion(i);
@@ -149,15 +153,19 @@ JMImageCache *_sharedCache = nil;
 
 - (void) removeAllObjects {
     [super removeAllObjects];
-
+    
+    __weak JMImageCache *weakSelf = self;
     dispatch_async(dispatch_get_global_queue(kJSImageCacheQueuePriority, 0), ^{
+        __strong JMImageCache *strongSelf = weakSelf;
+        if (!strongSelf) return;
+        
         NSFileManager *fileMgr = [NSFileManager defaultManager];
         NSError *error = nil;
-        NSArray *directoryContents = [fileMgr contentsOfDirectoryAtPath:self.imageCacheDirectory error:&error];
+        NSArray *directoryContents = [fileMgr contentsOfDirectoryAtPath:strongSelf.imageCacheDirectory error:&error];
 
         if (error == nil) {
             for (NSString *path in directoryContents) {
-                NSString *fullPath = [self.imageCacheDirectory stringByAppendingPathComponent:path];
+                NSString *fullPath = [strongSelf.imageCacheDirectory stringByAppendingPathComponent:path];
 
                 BOOL removeSuccess = [fileMgr removeItemAtPath:fullPath error:&error];
                 if (!removeSuccess) {
@@ -171,10 +179,14 @@ JMImageCache *_sharedCache = nil;
 }
 - (void) removeObjectForKey:(id)key {
     [super removeObjectForKey:key];
-
+    
+    __weak JMImageCache *weakSelf = self;
     dispatch_async(dispatch_get_global_queue(kJSImageCacheQueuePriority, 0), ^{
+        __strong JMImageCache *strongSelf = weakSelf;
+        if (!strongSelf) return;
+        
         NSFileManager *fileMgr = [NSFileManager defaultManager];
-        NSString *cachePath = [self _cachePathForKey:key];
+        NSString *cachePath = [strongSelf _cachePathForKey:key];
 
         NSError *error = nil;
 
@@ -233,13 +245,18 @@ JMImageCache *_sharedCache = nil;
 	if(i) {
 		return i;
 	} else {
+        
+        __weak JMImageCache *weakSelf = self;
         [self _downloadAndWriteImageForURL:url key:key completionBlock:^(UIImage *image) {
+            __strong JMImageCache *strongSelf = weakSelf;
+            if (!strongSelf) return;
+            
             if(d) {
                 if([d respondsToSelector:@selector(cache:didDownloadImage:forURL:)]) {
-                    [d cache:self didDownloadImage:image forURL:url];
+                    [d cache:strongSelf didDownloadImage:image forURL:url];
                 }
                 if([d respondsToSelector:@selector(cache:didDownloadImage:forURL:key:)]) {
-                    [d cache:self didDownloadImage:image forURL:url key:key];
+                    [d cache:strongSelf didDownloadImage:image forURL:url key:key];
                 }
             }
         }];
@@ -303,9 +320,13 @@ JMImageCache *_sharedCache = nil;
     
     unsigned long long minSize = (minBytesSize > maxBytesSize ? maxBytesSize : minBytesSize);
     
+    __weak JMImageCache *weakSelf = self;
     dispatch_async(dispatch_get_global_queue(kJSImageCacheQueuePriority, 0), ^{
+        __strong JMImageCache *strongSelf = weakSelf;
+        if (!strongSelf) return;
+        
         unsigned long long totalSize = 0;
-        NSArray *fileDatasInCacheDirectory = [self _fileDatasInImageCacheDirectory:&totalSize];
+        NSArray *fileDatasInCacheDirectory = [strongSelf _fileDatasInImageCacheDirectory:&totalSize];
         
         if (!fileDatasInCacheDirectory) return;
         
