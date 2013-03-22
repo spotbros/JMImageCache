@@ -39,6 +39,7 @@ JMImageCache *_sharedCache = nil;
 
 @property (strong, nonatomic) NSString *imageCacheDirectory;
 @property (strong, nonatomic) NSOperationQueue *diskOperationQueue;
+@property (assign, nonatomic) BOOL informCost;
 
 - (NSString *) _cachePathForKey:(NSString *)key;
 - (NSArray *) _fileDatasInImageCacheDirectory:(unsigned long long *)directorySize;
@@ -50,6 +51,7 @@ JMImageCache *_sharedCache = nil;
 
 @synthesize imageCacheDirectory = _imageCacheDirectory;
 @synthesize diskOperationQueue = _diskOperationQueue;
+@synthesize informCost = _informCost;
 
 + (JMImageCache *) sharedCache {
 	if(!_sharedCache) {
@@ -63,12 +65,23 @@ JMImageCache *_sharedCache = nil;
     return [self initWithCacheDirectory:kJMImageCacheDefaultDirectory];
 }
 
-- (id) initWithCacheDirectory:(NSString*)cacheDirectory {
+- (id) initWithCacheDirectory:(NSString *)cacheDirectory {
+    return [self initWithCacheDirectory:cacheDirectory maxMemoryBytesSize:0];
+}
+
+- (id) initWithCacheDirectory:(NSString *)cacheDirectory maxMemoryBytesSize:(NSUInteger)bytesSize {
     self = [super init];
     if(!self) return nil;
     
     self.imageCacheDirectory = [NSHomeDirectory() stringByAppendingPathComponent:cacheDirectory];
     self.diskOperationQueue = [[NSOperationQueue alloc] init];
+    self.informCost = NO;
+    
+    if (bytesSize > 0)
+    {
+        self.informCost = YES;
+        [self setTotalCostLimit:bytesSize];
+    }
     
     [[NSFileManager defaultManager] createDirectoryAtPath:self.imageCacheDirectory
                               withIntermediateDirectories:YES
@@ -218,8 +231,9 @@ JMImageCache *_sharedCache = nil;
 	if(returner) {
         return returner;
 	} else {
-        UIImage *i = [self imageFromDiskForKey:key];
-        if(i) [self setImage:i forKey:key];
+        NSUInteger bytes = 0;
+        UIImage *i = [self imageFromDiskForKey:key bytesSize:&bytes];
+        if(i) [self setImage:i forKey:key bytesSize:bytes];
 
         return i;
     }
@@ -265,8 +279,22 @@ JMImageCache *_sharedCache = nil;
 }
 
 - (UIImage *) imageFromDiskForKey:(NSString *)key {
-	UIImage *i = [[UIImage alloc] initWithData:[NSData dataWithContentsOfFile:[self _cachePathForKey:key] options:0 error:NULL]];
-	return i;
+    NSUInteger bytesSize = 0;
+    
+    return [self imageFromDiskForKey:key bytesSize:&bytesSize];
+}
+
+- (UIImage *) imageFromDiskForKey:(NSString *)key bytesSize:(NSUInteger *)bytesSize
+{
+    NSData *imageData = [NSData dataWithContentsOfFile:[self _cachePathForKey:key] options:0 error:NULL];
+    if (!imageData)
+    {
+        *bytesSize = 0;
+        return nil;
+    }
+    
+    *bytesSize = [imageData length];
+	return [[UIImage alloc] initWithData:imageData];
 }
 
 - (UIImage *) imageFromDiskForURL:(NSURL *)url {
@@ -276,14 +304,25 @@ JMImageCache *_sharedCache = nil;
 #pragma mark -
 #pragma mark Setter Methods
 
-- (void) setImage:(UIImage *)i forKey:(NSString *)key {
-	if (i) {
-		[super setObject:i forKey:key];
-	}
+- (void) setImage:(UIImage *)i forKey:(NSString *)key bytesSize:(NSUInteger)bytesSize
+{
+    if (i) {
+        if (self.informCost)
+        {
+            [super setObject:i forKey:key cost:bytesSize];
+        }
+        else
+        {
+            [super setObject:i forKey:key];
+        }
+    }
 }
-- (void) setImage:(UIImage *)i forURL:(NSURL *)url {
-    [self setImage:i forKey:keyForURL(url)];
+
+- (void) setImage:(UIImage *)i forURL:(NSURL *)url bytesSize:(NSUInteger)bytesSize
+{
+    [self setImage:i forKey:keyForURL(url) bytesSize:bytesSize];
 }
+
 - (void) removeImageForKey:(NSString *)key {
 	[self removeObjectForKey:key];
 }
@@ -310,7 +349,7 @@ JMImageCache *_sharedCache = nil;
         
         [self performDiskWriteOperation:writeInvocation];
         
-        [self setImage:i forKey:key];
+        [self setImage:i forKey:key bytesSize:[data length]];
     }
     
     return i;
@@ -334,6 +373,11 @@ JMImageCache *_sharedCache = nil;
 
 #pragma mark -
 #pragma mark Limit cache size
+
+- (void) removeImagesFromMemory
+{
+    [super removeAllObjects];
+}
 
 - (void) adjustCacheSizeTo:(unsigned long long)bytesSize {
     [self adjustCacheSizeBetweenMin:bytesSize max:bytesSize];
