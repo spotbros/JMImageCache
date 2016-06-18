@@ -18,6 +18,8 @@
 
 @interface JMImageCache : NSCache
 
+@property (nonatomic) BOOL memoryOnlyCache;
+
 // Global cache for easy use. Located in 'Library/Caches/JMCache', no memory limit
 + (JMImageCache *) sharedCache;
 
@@ -43,7 +45,7 @@
 - (void) setImage:(UIImage *)i forURL:(NSURL *)url bytesSize:(NSUInteger)bytesSize;
 
 - (void) removeImageForKey:(NSString *)key;
-- (void) removeImageForURL:(NSString *)url;
+- (void) removeImageForURL:(NSURL *)url;
 
 - (UIImage *) setData:(NSData *)data forKey:(NSString *)key;
 - (UIImage *) setData:(NSData *)data forURL:(NSURL *)url;

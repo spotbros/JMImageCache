@@ -91,7 +91,7 @@ JMImageCache *_sharedCache = nil;
 }
 
 - (NSString *) _cachePathForKey:(NSString *)key {
-    NSString *fileName = [NSString stringWithFormat:@"%@-%u", kJMImageCacheDefaultPrefix, [key hash]];
+    NSString *fileName = [NSString stringWithFormat:@"%@-%lu", kJMImageCacheDefaultPrefix, (unsigned long)[key hash]];
 	return [self.imageCacheDirectory stringByAppendingPathComponent:fileName];
 }
 
@@ -339,15 +339,17 @@ JMImageCache *_sharedCache = nil;
         // stop process if the method could not initialize the image from the specified data
         if (!i) return nil;
         
-        NSString *cachePath = [self _cachePathForKey:key];
-        NSInvocation *writeInvocation = [NSInvocation invocationWithMethodSignature:[self methodSignatureForSelector:@selector(writeData:toPath:)]];
-        
-        [writeInvocation setTarget:self];
-        [writeInvocation setSelector:@selector(writeData:toPath:)];
-        [writeInvocation setArgument:&data atIndex:2];
-        [writeInvocation setArgument:&cachePath atIndex:3];
-        
-        [self performDiskWriteOperation:writeInvocation];
+        if (!self.memoryOnlyCache) {
+            NSString *cachePath = [self _cachePathForKey:key];
+            NSInvocation *writeInvocation = [NSInvocation invocationWithMethodSignature:[self methodSignatureForSelector:@selector(writeData:toPath:)]];
+            
+            [writeInvocation setTarget:self];
+            [writeInvocation setSelector:@selector(writeData:toPath:)];
+            [writeInvocation setArgument:&data atIndex:2];
+            [writeInvocation setArgument:&cachePath atIndex:3];
+            
+            [self performDiskWriteOperation:writeInvocation];
+        }
         
         [self setImage:i forKey:key bytesSize:[data length]];
     }
